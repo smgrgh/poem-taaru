@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Rainy Night Poem House</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Dancing+Script:wght@500;700&family=Montserrat:wght@300;400&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        /* --- 1. VARIABLES & RESET --- */
+        :root {
+            --bg-dark: #020202;
+            --fire-orange: #ff5500;
+            --fire-yellow: #ffd700;
+            --text-light: #e6f1ff;
+            --paper-bg: #fdf6e3;
+            --parchment-bg: url('https://www.transparenttextures.com/patterns/aged-paper.png'); /* New ancient texture */
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Montserrat', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            position: relative;
+            cursor: none; /* Custom cursor */
+            user-select: none;
+        }
+
+        /* --- 2. CURSOR & LIGHTING --- */
+        #cursor-light {
+            position: fixed; top: 0; left: 0;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(255, 200, 120, 0.12) 0%, rgba(255, 160, 80, 0.04) 40%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            mix-blend-mode: screen;
+            transition: width 0.1s, height 0.1s;
+        }
+
+        #cursor-trail {
+            position: fixed; top: 0; left: 0;
+            width: 20px; height: 20px;
+            background: rgba(255, 215, 0, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 101;
+            filter: blur(5px);
+            transition: top 0.15s ease-out, left 0.15s ease-out;
+            transform: translate(-50%, -50%);
+        }
+
+        /* --- 3. ATMOSPHERE LAYERS --- */
+        #darkness-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle 300px at var(--x, 50%) var(--y, 50%), transparent 0%, rgba(3, 5, 10, 0.94) 100%);
+            z-index: 55;
+            pointer-events: none;
+            transition: background 0.2s;
+        }
+        #darkness-overlay.flash { background: rgba(255, 255, 255, 0.2) !important; transition: background 0.05s; }
+
+        #fire-glow-overlay {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 80%; height: 60%;
+            background: radial-gradient(ellipse at bottom, rgba(255, 85, 0, 0.2) 0%, transparent 70%);
+            z-index: 54;
+            pointer-events: none;
+            opacity: 0.5; /* Dynamic via JS */
+            transition: opacity 1s, transform 1s;
+        }
+
+        #rain-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 60; }
+        .drop { position: absolute; bottom: 100%; width: 1px; height: 60px; background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.3)); animation: rain linear infinite; }
+        @keyframes rain { to { bottom: -60px; } }
+
+        /* --- 4. LANDING PAGE --- */
+        .screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: opacity 2s ease;
+        }
+        #landing-page { z-index: 200; background: #020c1b; cursor: default; }
+        .window-frame {
+            width: 180px; height: 280px; border: 4px solid #333;
+            background: linear-gradient(135deg, rgba(255,165,0,0.05), rgba(0,0,0,0.9));
+            box-shadow: 0 0 80px rgba(255, 140, 0, 0.1); margin-bottom: 2rem; position: relative;
+        }
+        .window-frame::after { content: ''; position: absolute; top: 50%; width: 100%; height: 4px; background: #333; }
+        .window-frame::before { content: ''; position: absolute; left: 50%; height: 100%; width: 4px; background: #333; }
+        h1 { font-family: 'Cormorant Garamond'; font-size: 3.5rem; color: #e6b8b8; margin-bottom: 1rem; opacity: 0; animation: fadeUp 2s forwards 0.5s; text-align: center; }
+        .subtitle { font-family: 'Montserrat'; font-weight: 300; color: #8892b0; margin-bottom: 3rem; opacity: 0; animation: fadeUp 2s forwards 1s; }
+        .btn-enter {
+            padding: 15px 40px; background: transparent; border: 1px solid #ff7b00; color: #ff7b00;
+            font-family: 'Montserrat'; text-transform: uppercase; letter-spacing: 2px; cursor: pointer; border-radius: 50px;
+            opacity: 0; animation: fadeUp 2s forwards 1.5s; transition: 0.3s;
+        }
+        .btn-enter:hover { background: rgba(255, 123, 0, 0.1); box-shadow: 0 0 20px rgba(255, 123, 0, 0.3); }
+
+        /* --- 5. THE ROOM --- */
+        #room-page { z-index: 10; opacity: 0; visibility: hidden; transition: opacity 2s ease; }
+        #room-bg {
+            position: absolute; top: -5%; left: -5%; width: 110%; height: 110%;
+            background-image: url('https://images.unsplash.com/photo-1540518614846-7eded433c457?q=80&w=2603&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            filter: brightness(0.3) contrast(1.2) sepia(0.4);
+            animation: ken-burns 60s infinite alternate ease-in-out;
+        }
+
+        /* --- ENHANCED FIREPLACE --- */
+        #fireplace-container {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 300px; height: 150px;
+            z-index: 52; pointer-events: none;
+            transition: transform 1.5s ease-in-out, filter 1.5s;
+        }
+        
+        .fire-source {
+            position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 80px;
+            background: radial-gradient(circle, #ffd700 10%, #ff5500 50%, transparent 70%);
+            filter: blur(20px);
+            opacity: 0.8;
+            border-radius: 50% 50% 30% 30%;
+            animation: fire-flicker 0.15s infinite alternate;
+            transition: width 1s, height 1s;
+        }
+        
+        .fire-core {
+            position: absolute; bottom: -10px; left: 50%; transform: translateX(-50%);
+            width: 60px; height: 40px;
+            background: #fff;
+            filter: blur(15px);
+            opacity: 0.6;
+            animation: fire-flicker 0.1s infinite alternate-reverse;
+            z-index: 2;
+        }
+
+        .ember {
+            position: absolute; bottom: 0; left: 50%;
+            width: 4px; height: 4px; background: #ffcc00;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #ff5500;
+            animation: rise-ember 3s linear infinite;
+        }
+
+        @keyframes fire-flicker { 0% { transform: translateX(-50%) scale(1); opacity: 0.8; } 100% { transform: translateX(-50%) scale(1.1); opacity: 1; } }
+        @keyframes rise-ember { 0% { opacity: 1; transform: translate(-50%, 0) scale(1); } 100% { opacity: 0; transform: translate(calc(-50% + var(--drift)), -300px) scale(0); } }
+
+        /* --- TREASURES --- */
+        .treasure-item { position: absolute; width: 80px; height: 80px; display: flex; justify-content: center; align-items: center; cursor: none; z-index: 50; }
+        .sparkle { width: 8px; height: 8px; background: #fff; border-radius: 50%; box-shadow: 0 0 10px #fff, 0 0 20px #ffd700; opacity: 0; transition: all 0.5s ease; transform: scale(0); }
+        .treasure-item:hover .sparkle { opacity: 1; transform: scale(1.5); animation: pulse 1.5s infinite; }
+        .hint-text { position: absolute; top: -30px; font-family: 'Cormorant Garamond'; font-size: 1.2rem; color: #ffd700; text-shadow: 0 0 10px black; pointer-events: none; opacity: 0; transform: translateY(10px); transition: 0.4s; white-space: nowrap; }
+        .treasure-item:hover .hint-text { opacity: 1; transform: translateY(0); }
+        .treasure-item.found .sparkle { background: #e6b8b8; box-shadow: 0 0 10px #e6b8b8; opacity: 0.3 !important; transform: scale(1) !important; animation: none; }
+
+        /* Foggy Window */
+        #t-foggy-window { width: 120px; height: 120px; background: rgba(200, 220, 255, 0.15); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; transition: backdrop-filter 2s ease; overflow: hidden; }
+        #t-foggy-window:hover { backdrop-filter: blur(0px); }
+        #t-foggy-window .sparkle { z-index: 2; }
+        #t-foggy-window::before { content: '☁️'; font-size: 2rem; opacity: 0.5; transition: opacity 2s; }
+        #t-foggy-window:hover::before { opacity: 0; }
+
+        /* LOCATIONS */
+        #t-1 { top: 35%; left: 12%; }
+        #t-2 { top: 70%; left: 30%; }
+        #t-3 { bottom: 10%; left: 50%; transform:translateX(-50%); }
+        #t-foggy-window { top: 20%; left: 45%; }
+        #t-5 { top: 25%; right: 15%; }
+        #t-6 { bottom: 15%; left: 8%; }
+        #t-7 { bottom: 25%; right: 25%; }
+        #t-8 { bottom: 10%; right: 45%; }
+        #t-9 { top: 10%; right: 8%; }
+        #t-10 { top: 60%; right: 10%; }
+        #t-gemini { top: 45%; left: 8%; }
+
+        /* --- UI ELEMENTS --- */
+        #candle-bar { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 15px; z-index: 200; pointer-events: none; }
+        .candle-icon { font-size: 1.5rem; color: #444; transition: 0.5s; text-shadow: 0 0 5px #000; }
+        .candle-icon.lit { color: #ffd700; text-shadow: 0 0 15px #ff7b00; animation: flicker-text 2s infinite; }
+        @keyframes flicker-text { 0%, 100% { opacity: 1; } 50% { opacity: 0.8; } }
+
+        #audio-mixer { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 210; opacity: 0.3; transition: opacity 0.3s; }
+        #audio-mixer:hover { opacity: 1; }
+        .mix-btn { background: rgba(0,0,0,0.5); border: 1px solid #555; color: #fff; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; }
+        .mix-btn.active { border-color: #ffd700; color: #ffd700; box-shadow: 0 0 10px rgba(255,215,0,0.3); }
+
+        /* --- IGNITE ALL BUTTON --- */
+        #btn-collect-all {
+            position: fixed; top: 20px; right: 20px;
+            z-index: 250;
+            background: transparent;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            color: rgba(255, 215, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Montserrat';
+            font-size: 0.8rem;
+            transition: 0.4s;
+            display: flex; align-items: center; gap: 8px;
+        }
+        #btn-collect-all:hover {
+            background: rgba(255, 215, 0, 0.1);
+            color: #ffd700;
+            border-color: #ffd700;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+        }
+
+        /* --- MODALS --- */
+        #modal-overlay, #gemini-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 300; display: none; justify-content: center; align-items: center; opacity: 0; transition: 0.5s; cursor: default; }
+        .modal-paper { background: #fdf6e3 url('https://www.transparenttextures.com/patterns/cream-paper.png'); width: 90%; max-width: 600px; max-height: 85vh; padding: 3rem; box-shadow: 0 0 60px rgba(0,0,0,0.9); border-radius: 2px; position: relative; overflow-y: auto; transform: translateY(20px); transition: transform 0.5s; }
+        .poem-title { font-family: 'Cormorant Garamond'; font-size: 2rem; text-align: center; margin-bottom: 2rem; border-bottom: 1px solid #d4c5a5; padding-bottom: 1rem; color: #2c2c2c; }
+        .poem-text { font-family: 'Cormorant Garamond'; font-size: 1.3rem; line-height: 1.8; margin-bottom: 2rem; color: #1a1a1a; white-space: pre-line; min-height: 100px; }
+        .note-box { background: rgba(255,255,255,0.5); padding: 1.5rem; border-left: 3px solid #8b4513; margin-bottom: 2rem; font-family: 'Dancing Script'; font-size: 1.5rem; color: #5d4037; opacity: 0; transition: opacity 1s; }
+        .modal-actions { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; padding-top: 1.5rem; flex-wrap: wrap; gap: 10px; }
+        button { cursor: pointer; border: none; font-family: 'Montserrat'; transition: 0.3s; }
+        .btn-text { background: none; color: #666; } .btn-text:hover { color: #000; }
+        .btn-mark { background: #0a192f; color: white; padding: 10px 20px; border-radius: 4px; } .btn-mark:hover { background: #1c3a63; }
+        .btn-gemini { background: linear-gradient(135deg, #e0c3fc, #8ec5fc); padding: 10px 20px; border-radius: 4px; font-weight: 600; color: #222; }
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; cursor: pointer; color: #888; }
+        .gemini-area { display: flex; flex-direction: column; gap: 10px; }
+        textarea { width: 100%; height: 100px; padding: 10px; font-family: 'Cormorant Garamond'; font-size: 1.2rem; border: 1px solid #ccc; background: rgba(255,255,255,0.8); }
+
+        @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.8; } 50% { transform: scale(2); opacity: 1; } 100% { transform: scale(1); opacity: 0.8; } }
+        @keyframes ken-burns { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
+        /* --- 6. FINAL REVEAL (LETTER FROM FIRE) --- */
+        #final-letter-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4); 
+            z-index: 400; display: none;
+            /* Centering Fix */
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none; 
+        }
+        
+        .floating-letter {
+            /* Ancient Parchment Style */
+            background: #f4e4bc url('https://www.transparenttextures.com/patterns/aged-paper.png');
+            background-blend-mode: multiply;
+            color: #4a3b2a; /* Antique brown text */
+            padding: 4rem; max-width: 600px; width: 90%;
+            font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; line-height: 1.6;
+            text-align: center;
+            
+            /* Burnt/Torn Edges Effect */
+            border-radius: 2px;
+            box-shadow: 
+                0 0 20px rgba(0,0,0,0.5),
+                inset 0 0 30px rgba(139, 69, 19, 0.4), /* Inner brown burn */
+                0 0 0 5px rgba(139, 69, 19, 0.1); /* Outer slight border */
+            border: 1px solid rgba(139, 69, 19, 0.3);
+            
+            /* Initial State for Animation */
+            transform: translateY(100vh) scale(0.8) rotate(-2deg); 
+            opacity: 0;
+            transition: all 3s cubic-bezier(0.2, 0.8, 0.2, 1);
+            pointer-events: auto;
+        }
+
+        .floating-letter.revealed {
+            transform: translateY(0) scale(1) rotate(0deg);
+            opacity: 1;
+        }
+
+        .letter-content { font-family: 'Dancing Script', cursive; font-size: 1.8rem; margin: 2rem 0; color: #3e2b19; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Audio Layers -->
+    <audio id="audio-rain" loop><source src="https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-music" loop><source src="https://assets.mixkit.co/music/preview/mixkit-memories-of-playing-piano-242.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-thunder"><source src="https://assets.mixkit.co/active_storage/sfx/1271/1271-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-fire" loop><source src="https://assets.mixkit.co/active_storage/sfx/1078/1078-preview.mp3" type="audio/mpeg"></audio>
+    <audio id="audio-chime"><source src="https://assets.mixkit.co/active_storage/sfx/1381/1381-preview.mp3" type="audio/mpeg"></audio>
+
+    <!-- Visual Layers -->
+    <div id="cursor-light"></div>
+    <div id="cursor-trail"></div>
+    
+    <div id="darkness-overlay"></div>
+    <div id="fire-glow-overlay"></div>
+    <div id="rain-container"></div>
+    <div id="fireplace-container">
+        <div class="fire-source"></div>
+        <div class="fire-core"></div>
+    </div>
+
+    <!-- 1. LANDING PAGE -->
+    <div id="landing-page" class="screen">
+        <div class="window-frame"></div>
+        <h1>The Rainy Night Poem Aashiyana</h1>
+        <p class="subtitle">It is cold outside. Come inside and be with me Taaru.</p>
+        <button class="btn-enter" onclick="enterRoom()">Trust Samag</button>
+    </div>
+
+    <!-- 2. TREASURE ROOM -->
+    <div id="room-page">
+        <div id="room-bg"></div>
+        
+        <!-- Ignite All Button -->
+        <button id="btn-collect-all" onclick="igniteAll()">
+            <i class="fas fa-wand-magic-sparkles"></i> Ignite All
+        </button>
+
+        <!-- Candle Progress Bar -->
+        <div id="candle-bar">
+            <i class="fas fa-carrot candle-icon" id="c-1"></i>
+            <i class="fas fa-carrot candle-icon" id="c-2"></i>
+            <i class="fas fa-carrot candle-icon" id="c-3"></i>
+            <i class="fas fa-carrot candle-icon" id="c-4"></i>
+            <i class="fas fa-carrot candle-icon" id="c-5"></i>
+            <i class="fas fa-carrot candle-icon" id="c-6"></i>
+            <i class="fas fa-carrot candle-icon" id="c-7"></i>
+            <i class="fas fa-carrot candle-icon" id="c-8"></i>
+            <i class="fas fa-carrot candle-icon" id="c-9"></i>
+            <i class="fas fa-carrot candle-icon" id="c-10"></i>
+        </div>
+
+        <!-- Audio Mixer -->
+        <div id="audio-mixer">
+            <button class="mix-btn active" onclick="toggleAudio('rain')" title="Rain"><i class="fas fa-cloud-rain"></i></button>
+            <button class="mix-btn active" onclick="toggleAudio('fire')" title="Fire"><i class="fas fa-fire"></i></button>
+            <button class="mix-btn active" onclick="toggleAudio('music')" title="Music"><i class="fas fa-music"></i></button>
+        </div>
+
+        <!-- Treasures -->
+        <div class="treasure-item" id="t-1" onclick="openPoem(0)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">A warm glow...</div></div>
+        <div class="treasure-item" id="t-2" onclick="openPoem(1)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">An old story...</div></div>
+        <div class="treasure-item" id="t-3" onclick="openPoem(2)" onmouseenter="playChime()"><div class="sparkle" style="background:#ff7b00; box-shadow:0 0 15px #ff7b00;"></div><div class="hint-text">In the embers...</div></div>
+        <div class="treasure-item" id="t-foggy-window" onclick="openPoem(3)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">Clear the fog...</div></div>
+        <div class="treasure-item" id="t-5" onclick="openPoem(4)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">A frozen moment...</div></div>
+        <div class="treasure-item" id="t-6" onclick="openPoem(5)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">Growing softly...</div></div>
+        <div class="treasure-item" id="t-7" onclick="openPoem(6)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">Warmth in hands...</div></div>
+        <div class="treasure-item" id="t-8" onclick="openPoem(7)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">Forgotten words...</div></div>
+        <div class="treasure-item" id="t-9" onclick="openPoem(8)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">Time passing...</div></div>
+        <div class="treasure-item" id="t-10" onclick="openPoem(9)" onmouseenter="playChime()"><div class="sparkle"></div><div class="hint-text">Unlocking hearts...</div></div>
+        <div class="treasure-item" id="t-gemini" onclick="openGemini()" onmouseenter="playChime()"><div class="sparkle" style="box-shadow: 0 0 15px #e0c3fc; background: #e0c3fc;"></div><div class="hint-text" style="color:#e0c3fc">The Whispering Quill</div></div>
+    </div>
+
+    <!-- Modals -->
+    <div id="modal-overlay">
+        <div class="modal-paper">
+            <span class="close-btn" onclick="closeModal()">&times;</span>
+            <div class="poem-title" id="m-title">Title</div>
+            <div class="poem-text" id="m-text"></div>
+            <div class="note-box" id="m-note">Note</div>
+            <div class="modal-actions">
+                <button class="btn-gemini" id="btn-listen" onclick="listenPoem()">✨ Listen</button>
+                <button class="btn-mark" id="btn-read" onclick="markRead()">Light a Candle &hearts;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="gemini-modal-overlay">
+        <div class="modal-paper">
+            <span class="close-btn" onclick="closeGemini()">&times;</span>
+            <div class="poem-title">The Whispering Quill</div>
+            <div id="gemini-input">
+                <p style="margin-bottom:1rem; font-family:'Cormorant Garamond'; font-size:1.2rem;">Tell me a memory...</p>
+                <div class="gemini-area">
+                    <textarea id="g-prompt" placeholder="e.g. Walking in the rain..."></textarea>
+                    <button class="btn-gemini" onclick="generatePoem()" id="btn-gen">✨ Weave Verse</button>
+                </div>
+            </div>
+            <div id="gemini-output" style="display:none; margin-top:1rem;">
+                <div class="poem-text" id="g-text"></div>
+                <button class="btn-text" onclick="resetGemini()">Write Another</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FINAL REVEAL (LETTER FROM FIRE) -->
+    <div id="final-letter-overlay">
+        <div class="floating-letter" id="the-letter">
+            <p style="font-size:2.2rem; color:#8b4513; margin-bottom:1.5rem; font-weight:bold;">My Dearest,</p>
+            
+            <!-- EDIT YOUR LETTER HERE -->
+            <div class="letter-content">
+                <p>
+                    Taaru, loving you feels like coming home to the gentlest place I know,you’re the reason even my quiet moments feel full.<br><br>
+                    Every poem, every word here is just a small echo of what my heart holds for you<br><br>
+                    I made this little corner of the world,I hope you feel me with you — today, tomorrow, and every tomorrow after...
+                </p>
+            </div>
+            <!-- END EDIT -->
+            
+            <p style="font-size:0.9rem; margin-top:2.5rem; opacity:0.7; font-family:'Montserrat'; color:#6b5b4a;">
+                — Forever Yours —
+            </p>
+        </div>
+    </div>
+
+    <script>
+        const apiKey = ""; // Runtime Injected
+        
+        // --- MOUSE TRACKING ---
+        const overlay = document.getElementById('darkness-overlay');
+        const cursorLight = document.getElementById('cursor-light');
+        const cursorTrail = document.getElementById('cursor-trail');
+        
+        document.addEventListener('mousemove', (e) => {
+            const x = e.clientX; const y = e.clientY;
+            overlay.style.setProperty('--x', x + 'px'); overlay.style.setProperty('--y', y + 'px');
+            cursorLight.style.left = x + 'px'; cursorLight.style.top = y + 'px';
+            cursorTrail.style.left = x + 'px'; cursorTrail.style.top = y + 'px';
+        });
+
+        // --- FX SYSTEMS ---
+        function initFX() {
+            // Rain
+            const c = document.getElementById('rain-container');
+            for(let i=0; i<80; i++) {
+                let d = document.createElement('div'); d.className = 'drop';
+                d.style.left = Math.random()*100 + 'vw'; d.style.animationDuration = (0.5+Math.random()*0.5)+'s'; d.style.animationDelay = Math.random()+'s';
+                c.appendChild(d);
+            }
+            // Embers
+            const f = document.getElementById('fireplace-container');
+            for(let i=0; i<40; i++) {
+                let e = document.createElement('div'); e.className = 'ember';
+                e.style.left = (Math.random()*100)+'%';
+                e.style.setProperty('--drift', (Math.random()*100 - 50)+'px');
+                e.style.animationDuration = (1.5+Math.random()*2)+'s'; e.style.animationDelay = Math.random()+'s';
+                f.appendChild(e);
+            }
+        }
+
+        function scheduleLightning() {
+            setTimeout(() => {
+                overlay.classList.add('flash');
+                document.getElementById('audio-thunder').currentTime=0; document.getElementById('audio-thunder').play().catch(()=>{});
+                setTimeout(() => overlay.classList.remove('flash'), 100);
+                scheduleLightning();
+            }, Math.random()*20000 + 15000);
+        }
+
+        function playChime() { const a = document.getElementById('audio-chime'); a.volume=0.3; a.currentTime=0; a.play().catch(()=>{}); }
+        function toggleAudio(id) {
+            const el = document.getElementById('audio-'+id);
+            if(el.paused) { el.play(); event.target.closest('button').classList.add('active'); }
+            else { el.pause(); event.target.closest('button').classList.remove('active'); }
+        }
+
+        // --- APP LOGIC ---
+        const poems = [
+            { t: "Love’s Philosophy", c: "The fountains mingle with the river\nAnd the rivers with the ocean,\nThe winds of heaven mix for ever\nWith a sweet emotion;\nNothing in the world is single;\nAll things by a law divine\nIn one spirit meet and mingle.\nWhy not I with thine?", n: "Taaru, even the rivers and winds know they belong together… just like my silly heart somehow always ends up with you hehe." },
+            { t: "i carry your heart with me", c: "i carry your heart with me(i carry it in\nmy heart)i am never without it(anywhere\ni go you go,my dear;and whatever is done\nby only me is your doing,my darling)\n\ni fear\nno fate(for you are my fate,my sweet)i want\nno world(for beautiful you are my world,my true)", n: "You’re my comfort place, my lucky charm, my tiny world-in-a-person , I carry you with me in ways you don’t even realise" },
+            { t: "love is more thicker than forget", c: "love is more thicker than forget\nmore thinner than recall\nmore seldom than a wave is wet\nmore frequent than to fail\nit is most mad and moonly\nand less it shall unbe\nthan all the sea which only\nis deeper than the sea", n: "Our love doesn’t follow logic, it just… stays. Soft, stubborn, and deeper than even we understand" },
+            { t: "Sonnet 18", c: "Shall I compare thee to a summer’s day?\nThou art more lovely and more temperate:\nRough winds do shake the darling buds of May,\nAnd summer’s lease hath all too short a date;\nSometime too hot the eye of heaven shines,\nAnd often is his gold complexion dimm'd;", n: "you’re softer than summer and somehow steadier than sunlight" },
+            { t: "How Do I Love Thee?", c: "How do I love thee? Let me count the ways.\nI love thee to the depth and breadth and height\nMy soul can reach, when feeling out of sight\nFor the ends of Being and ideal Grace.\nI love thee to the level of every day's\nMost quiet need, by sun and candlelight.", n: "Taaru, I love you in big ways and tiny everyday ways" },
+            { t: "When You Are Old", c: "When you are old and gray and full of sleep,\nAnd nodding by the fire, take down this book,\nAnd slowly read, and dream of the soft look\nYour eyes had once and of their shadows deep;\n\nHow many loved your moments of glad grace,\nAnd loved your beauty with love false or true;", n: "Taaru, this poem makes me imagine us growing old together — you by the fire, me still hopelessly in love with every soft look of yours." },
+            { t: "Brown Penny", c: "I whispered, 'I am too young,'\nAnd then, 'I am old enough';\nWherefore I threw a penny\nTo find out if I might love.\n'Go and love, go and love, young man,\nIf the lady be young and fair.'\nAh, penny, brown penny, brown penny,\nI am looped in the loops of her hair.", n: "Love sneaks up on you." },
+            { t: "Do Not Stand at My Grave", c: "Do not stand at my grave and weep\nI am not there. I do not sleep.\nI am a thousand winds that blow.\nI am the diamond glints on snow.\nI am the sunlight on ripened grain.\nI am the gentle autumn rain.", n: "Love stays." },
+            { t: "Hope is the Thing", c: "Hope is the thing with feathers -\nThat perches in the soul -\nAnd sings the tune without the words -\nAnd never stops - at all -\n\nAnd sweetest - in the Gale - is heard -", n: "You are my hope." },
+            { t: "Love in Brooklyn", c: "‘I love you, Horowitz,’ he said, and blew his nose.\nShe splashed her drink. ‘The hell you say,’ she said.\nThen, thinking hard, she lit a cigarette:\n‘Not love. You don’t love me. You like my legs,\nand how I make your letters nice and all.\nYou drunk your drink too fast. You don't love me.’", n: "Our Real, messy love." }
+        ];
+
+        let currIdx = 0;
+        let foundSet = new Set();
+        let typewriterTimeout;
+
+        function enterRoom() {
+            document.getElementById('audio-rain').volume=0.4; document.getElementById('audio-rain').play().catch(()=>{});
+            document.getElementById('audio-music').volume=0.5; document.getElementById('audio-music').play().catch(()=>{});
+            document.getElementById('audio-fire').volume=0.6; document.getElementById('audio-fire').play().catch(()=>{});
+            
+            document.getElementById('landing-page').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('landing-page').style.display = 'none';
+                document.getElementById('room-page').style.visibility = 'visible';
+                document.getElementById('room-page').style.opacity = '1';
+                initFX();
+                scheduleLightning();
+            }, 2000);
+        }
+
+        function typeWriter(text, elementId, speed = 30) {
+            const el = document.getElementById(elementId); el.innerHTML = "";
+            let i = 0;
+            function type() {
+                if (i < text.length) { el.innerHTML += text.charAt(i); i++; typewriterTimeout = setTimeout(type, speed); }
+                else { document.getElementById('m-note').style.opacity = '1'; }
+            }
+            clearTimeout(typewriterTimeout); document.getElementById('m-note').style.opacity = '0'; type();
+        }
+
+        function openPoem(idx) {
+            currIdx = idx;
+            document.getElementById('m-title').innerText = poems[idx].t;
+            document.getElementById('m-note').innerText = poems[idx].n;
+            typeWriter(poems[idx].c, 'm-text');
+            
+            let btn = document.getElementById('btn-read');
+            if(foundSet.has(idx)) { btn.innerText = "Already Lit ✓"; btn.disabled = true; }
+            else { btn.innerText = "Light a Candle ♥"; btn.disabled = false; }
+            
+            document.getElementById('modal-overlay').style.display = 'flex';
+            setTimeout(() => { document.getElementById('modal-overlay').style.opacity = '1'; document.querySelector('.modal-paper').style.transform='translateY(0)'; }, 10);
+        }
+
+        function closeModal() {
+            clearTimeout(typewriterTimeout);
+            let m = document.getElementById('modal-overlay'); m.style.opacity = '0';
+            document.querySelector('.modal-paper').style.transform='translateY(20px)';
+            setTimeout(() => { m.style.display = 'none'; checkEnd(); }, 500);
+        }
+
+        // FIRE LOGIC UPDATE
+        function updateFire() {
+            const count = foundSet.size;
+            const fire = document.querySelector('.fire-source');
+            const glow = document.getElementById('fire-glow-overlay');
+            
+            // Scale fire from 1.0 to 2.5
+            const scale = 1 + (count * 0.15); 
+            // Opacity from 0.8 to 1
+            const opacity = 0.8 + (count * 0.02);
+            // Glow intensity
+            const glowOp = 0.5 + (count * 0.05);
+
+            fire.style.transform = `translateX(-50%) scale(${scale})`;
+            fire.style.opacity = opacity;
+            glow.style.opacity = glowOp;
+        }
+
+        function markRead() {
+            if(!foundSet.has(currIdx)) {
+                foundSet.add(currIdx);
+                // Light candle
+                document.getElementById('c-'+(foundSet.size)).classList.add('lit');
+                document.getElementById('btn-read').innerText = "Lit ✓";
+                document.getElementById('t-'+(currIdx===3?'foggy-window':currIdx===2?'3':(currIdx+1))).classList.add('found');
+                // Grow fire
+                updateFire();
+            }
+        }
+
+        // IGNITE ALL (Cheat Button)
+        function igniteAll() {
+            // Mark all as found
+            for(let i=0; i<10; i++) {
+                if(!foundSet.has(i)) {
+                    foundSet.add(i);
+                    document.getElementById('c-'+(i+1)).classList.add('lit');
+                    document.getElementById('t-'+(i===3?'foggy-window':i===2?'3':(i+1))).classList.add('found');
+                }
+            }
+            // Maximize fire
+            updateFire();
+            // Trigger end sequence
+            checkEnd();
+        }
+
+        function checkEnd() {
+            if(foundSet.size === poems.length) {
+                // Wait for modal close
+                setTimeout(() => {
+                    // Maximize fire one last time visually
+                    const fire = document.querySelector('.fire-source');
+                    fire.style.transform = `translateX(-50%) scale(3)`;
+                    fire.style.filter = "blur(10px)"; // Cleaner look
+                    
+                    // Show Overlay (Now centered)
+                    const ol = document.getElementById('final-letter-overlay');
+                    ol.style.display = 'flex';
+                    
+                    // Animate Letter
+                    setTimeout(() => {
+                        document.getElementById('the-letter').classList.add('revealed');
+                    }, 500);
+                    
+                }, 800);
+            }
+        }
+
+        // --- GEMINI & TTS ---
+        function openGemini() { document.getElementById('gemini-modal-overlay').style.display = 'flex'; setTimeout(()=>document.getElementById('gemini-modal-overlay').style.opacity='1',10); }
+        function closeGemini() { document.getElementById('gemini-modal-overlay').style.opacity = '0'; setTimeout(()=>document.getElementById('gemini-modal-overlay').style.display='none',500); }
+        function resetGemini() { document.getElementById('gemini-output').style.display='none'; document.getElementById('gemini-input').style.display='block'; document.getElementById('g-prompt').value=''; }
+
+        async function generatePoem() {
+            const p = document.getElementById('g-prompt').value; const b = document.getElementById('btn-gen');
+            if(!p) return; b.innerText="Weaving..."; b.disabled=true;
+            try {
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: `Write a short romantic poem like Neruda about: ${p}` }] }] })
+                });
+                const d = await r.json(); const t = d.candidates?.[0]?.content?.parts?.[0]?.text || "Love writes itself...";
+                document.getElementById('gemini-input').style.display='none'; document.getElementById('gemini-output').style.display='block';
+                typeWriter(t, 'g-text');
+            } catch(e){console.error(e);} finally { b.innerText="✨ Weave Verse"; b.disabled=false; }
+        }
+
+        async function listenPoem() {
+            const b = document.getElementById('btn-listen'); b.innerText="Loading..."; b.disabled=true;
+            try {
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: poems[currIdx].c }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Fenrir" } } } } })
+                });
+                const d = await r.json(); const ad = d.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                if(ad) {
+                    const bin = atob(ad); const bytes = new Uint8Array(bin.length); for(let i=0; i<bin.length; i++) bytes[i]=bin.charCodeAt(i);
+                    const wav = addWavHeader(bytes, 24000, 1);
+                    const a = new Audio(URL.createObjectURL(new Blob([wav], {type:'audio/wav'})));
+                    a.play(); b.innerText="Playing..."; a.onended=()=>{b.innerText="✨ Listen"; b.disabled=false;}
+                }
+            } catch(e){ b.innerText="Error"; }
+        }
+
+        function addWavHeader(samples, sampleRate, numChannels) {
+            const buffer = new ArrayBuffer(44 + samples.length); const view = new DataView(buffer);
+            const writeString = (v, o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+            writeString(view, 0, 'RIFF'); view.setUint32(4, 36 + samples.length, true); writeString(view, 8, 'WAVE');
+            writeString(view, 12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true); view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * 2, true); view.setUint16(32, numChannels * 2, true);
+            view.setUint16(34, 16, true); writeString(view, 36, 'data'); view.setUint32(40, samples.length, true);
+            for (let i = 0; i < samples.length; i++) view.setUint8(44 + i, samples[i]);
+            return buffer;
+        }
+    </script>
+</body>
+</html>
